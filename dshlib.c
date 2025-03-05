@@ -54,9 +54,6 @@
  */
 
 
-
-
-// Allocate memory for a command buffer
 int alloc_cmd_buff(cmd_buff_t *cmd_buff) {
     if (!cmd_buff) return ERR_MEMORY;
 
@@ -71,7 +68,6 @@ int alloc_cmd_buff(cmd_buff_t *cmd_buff) {
     return OK;
 }
 
-// Free memory allocated for a command buffer
 int free_cmd_buff(cmd_buff_t *cmd_buff) {
     if (!cmd_buff) return ERR_MEMORY;
 
@@ -86,7 +82,6 @@ int free_cmd_buff(cmd_buff_t *cmd_buff) {
     return OK;
 }
 
-// Clear a command buffer for reuse
 int clear_cmd_buff(cmd_buff_t *cmd_buff) {
     if (!cmd_buff || !cmd_buff->_cmd_buffer) return ERR_MEMORY;
 
@@ -100,7 +95,6 @@ int clear_cmd_buff(cmd_buff_t *cmd_buff) {
     return OK;
 }
 
-// Parse command input and store into `cmd_buff_t`
 int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff) {
     if (!cmd_line || !cmd_buff || !cmd_buff->_cmd_buffer) return ERR_MEMORY;
 
@@ -152,7 +146,6 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff) {
     return OK;
 }
 
-// Parse a piped command input and store it in `command_list_t`
 int build_cmd_list(char *cmd_line, command_list_t *clist) {
     char *token;
     char *saveptr;
@@ -162,7 +155,6 @@ int build_cmd_list(char *cmd_line, command_list_t *clist) {
 
     if (strlen(cmd_line) == 0) return WARN_NO_CMDS;
 
-    // Create a copy of cmd_line to avoid modifying the original
     char cmd_copy[SH_CMD_MAX];
     strncpy(cmd_copy, cmd_line, SH_CMD_MAX - 1);
     cmd_copy[SH_CMD_MAX - 1] = '\0';
@@ -175,7 +167,6 @@ int build_cmd_list(char *cmd_line, command_list_t *clist) {
 
         if (strlen(token) == 0) return WARN_NO_CMDS;
 
-        // Allocate command buffer
         cmd_buff_t *cmd = &clist->commands[cmd_idx];
         if (alloc_cmd_buff(cmd) != OK) return ERR_MEMORY;
 
@@ -192,7 +183,6 @@ int build_cmd_list(char *cmd_line, command_list_t *clist) {
     return OK;
 }
 
-// Match built-in commands
 Built_In_Cmds match_command(const char *input) {
     if (!input) return BI_NOT_BI;
 
@@ -203,7 +193,6 @@ Built_In_Cmds match_command(const char *input) {
     return BI_NOT_BI;
 }
 
-// Execute built-in commands
 Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd) {
     if (!cmd || cmd->argc == 0 || !cmd->argv[0]) return BI_NOT_BI;
 
@@ -215,7 +204,7 @@ Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd) {
             exit(OK_EXIT);
 
         case BI_CMD_DRAGON:
-            printf("🐉 Drexel Dragon!\n");
+            printf("Drexel Dragon!\n");
             return BI_EXECUTED;
 
         case BI_CMD_CD:
@@ -231,7 +220,6 @@ Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd) {
     }
 }
 
-// Execute a single command
 int exec_cmd(cmd_buff_t *cmd) {
     if (!cmd || cmd->argc == 0) return WARN_NO_CMDS;
 
@@ -254,20 +242,17 @@ int exec_cmd(cmd_buff_t *cmd) {
     return OK;
 }
 
-// Execute a pipeline of commands
 int execute_pipeline(command_list_t *clist) {
     int num_cmds = clist->num;
-    int pipes[CMD_MAX - 1][2];  // Pipe file descriptors
-    pid_t pids[CMD_MAX];        // Store child PIDs
+    int pipes[CMD_MAX - 1][2];  
+    pid_t pids[CMD_MAX];       
 
-    // Create pipes
     for (int i = 0; i < num_cmds - 1; i++) {
         if (pipe(pipes[i]) < 0) {
             return ERR_EXEC_CMD;
         }
     }
 
-    // Execute commands in a pipeline
     for (int i = 0; i < num_cmds; i++) {
         pids[i] = fork();
 
@@ -275,36 +260,30 @@ int execute_pipeline(command_list_t *clist) {
             return ERR_EXEC_CMD;
         }
 
-        if (pids[i] == 0) {  // Child process
-            // Redirect input from previous pipe
+        if (pids[i] == 0) { 
             if (i > 0) {
                 dup2(pipes[i - 1][0], STDIN_FILENO);
             }
 
-            // Redirect output to next pipe
             if (i < num_cmds - 1) {
                 dup2(pipes[i][1], STDOUT_FILENO);
             }
 
-            // Close all pipes in child
             for (int j = 0; j < num_cmds - 1; j++) {
                 close(pipes[j][0]);
                 close(pipes[j][1]);
             }
 
-            // Execute command
             execvp(clist->commands[i].argv[0], clist->commands[i].argv);
             exit(EXIT_FAILURE);
         }
     }
 
-    // Close all pipes in parent
     for (int i = 0; i < num_cmds - 1; i++) {
         close(pipes[i][0]);
         close(pipes[i][1]);
     }
 
-    // Wait for all children
     for (int i = 0; i < num_cmds; i++) {
         waitpid(pids[i], NULL, 0);
     }
@@ -312,7 +291,6 @@ int execute_pipeline(command_list_t *clist) {
     return OK;
 }
 
-// Main shell loop
 int exec_local_cmd_loop() {
     char cmd_line[SH_CMD_MAX];
     command_list_t clist;
