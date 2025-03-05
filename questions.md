@@ -4,9 +4,11 @@ In my shell, after creating child processes for each command, I use waitpid() in
 
 If I forget waitpid(), the shell wouldn’t wait for commands to finish. This means:
 
-The shell prompt (dsh3>) would appear too early, even before commands complete.
-Some processes could become "zombie" processes, meaning they are done but not properly removed from the system.
-If multiple commands run at the same time, their output might mix together, making it hard to read.
+- The shell prompt (dsh3>) would appear too early, even before commands complete.
+  
+- Some processes could become "zombie" processes, meaning they are done but not properly removed from the system.
+
+- If multiple commands run at the same time, their output might mix together, making it hard to read.
 
 2. The dup2() function is used to redirect input and output file descriptors. Explain why it is necessary to close unused pipe ends after calling dup2(). What could go wrong if you leave pipes open?
 
