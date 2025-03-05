@@ -16,9 +16,9 @@ Pipes pass data between commands. When we use dup2(), we redirect input and outp
 
 If we don’t close pipes, these problems can happen:
 
-Too many pipes stay open, and the system might run out of file handles.
-If a process is waiting for input but the write end of the pipe is still open, it waits forever.
-If a pipe is still open, it can send extra data or make a command think it needs to wait for more input.
+- Too many pipes stay open, and the system might run out of file handles.
+- If a process is waiting for input but the write end of the pipe is still open, it waits forever.
+- If a pipe is still open, it can send extra data or make a command think it needs to wait for more input.
 
 
 3. Your shell recognizes built-in commands (cd, exit, dragon). Unlike external commands, built-in commands do not require execvp(). Why is cd implemented as a built-in rather than an external command? What challenges would arise if cd were implemented as an external process?
@@ -27,11 +27,12 @@ The cd command changes the current working directory. It must be a built-in comm
 
 If cd was an external command:
 
-It would run in a child process created by fork().
-The child process would change its directory using chdir(), but then exit.
-The parent shell wouldn’t change directories, so it would stay in the same place.
+- It would run in a child process created by fork().
+- The child process would change its directory using chdir(), but then exit.
+- The parent shell wouldn’t change directories, so it would stay in the same place.
 
 For example: dsh3> cd /tmp
+
 If cd was external, after running, the shell would still be in the old directory instead of /tmp.
 This is why, in my shell, cd is handled inside exec_built_in_cmd(), where it uses chdir() directly in the parent shell process.
 
@@ -41,10 +42,15 @@ This is why, in my shell, cd is handled inside exec_built_in_cmd(), where it use
 4. Currently, your shell supports a fixed number of piped commands (CMD_MAX). How would you modify your implementation to allow an arbitrary number of piped commands while still handling memory allocation efficiently? What trade-offs would you need to consider?
 
 Right now, my shell only allows a fixed number of commands in a pipeline (CMD_MAX = 8). To remove this limit, I can dynamically allocate memory instead of using a fixed array.
+
 Tradeoffs:
+
 Good:
-More flexible → The user can enter as many piped commands as they want.
-Uses only as much memory as needed, saving space.
+
+- More flexible: The user can enter as many piped commands as they want.
+- Uses only as much memory as needed, saving space.
+
 Bad:
-Memory management is harder → If I forget to free() memory, my shell could leak memory.
-Slower → Allocating and resizing memory takes more time than using a fixed array.
+
+- Memory management is harder - If I forget to free() memory, my shell could leak memory.
+- Slower - Allocating and resizing memory takes more time than using a fixed array.
